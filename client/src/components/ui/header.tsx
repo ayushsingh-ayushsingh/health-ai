@@ -26,7 +26,7 @@ export const HeroHeader = () => {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
-  
+
   return (
     <header>
       <nav
@@ -37,7 +37,7 @@ export const HeroHeader = () => {
           className={cn(
             "mx-auto mt-2 max-w-6xl px-6 backdrop-blur-lg transition-all duration-300 lg:px-12 border border-primary/0 rounded-2xl",
             isScrolled &&
-              "max-w-4xl bg-background/80 rounded-2xl border border-border lg:px-5",
+              "max-w-4xl bg-background/50 rounded-2xl border border-border lg:px-5",
           )}
         >
           <div className="relative flex flex-wrap items-center justify-between gap-6 py-3 lg:gap-0 lg:py-4">
@@ -49,7 +49,6 @@ export const HeroHeader = () => {
               >
                 <Logo />
               </Link>
-
               <button
                 onClick={() => setMenuState(!menuState)}
                 aria-label={menuState == true ? "Close Menu" : "Open Menu"}

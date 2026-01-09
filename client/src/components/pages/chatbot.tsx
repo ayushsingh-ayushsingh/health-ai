@@ -1,4 +1,3 @@
-"use client";
 import {
   Conversation,
   ConversationContent,
@@ -48,6 +47,9 @@ import {
   ReasoningTrigger,
 } from "@/components/ai-elements/reasoning";
 import { Loader } from "@/components/ai-elements/loader";
+import { DefaultChatTransport } from "ai";
+import { Link } from "react-router-dom";
+
 const models = [
   {
     name: "GPT 4o",
@@ -58,11 +60,17 @@ const models = [
     value: "deepseek/deepseek-r1",
   },
 ];
+
 const ChatBot = () => {
   const [input, setInput] = useState("");
   const [model, setModel] = useState<string>(models[0].value);
   const [webSearch, setWebSearch] = useState(false);
-  const { messages, sendMessage, status, regenerate } = useChat();
+  const { messages, sendMessage, status, regenerate } = useChat({
+    transport: new DefaultChatTransport({
+      api: "http://localhost:3000/api/chat",
+    }),
+  });
+
   const handleSubmit = (message: PromptInputMessage) => {
     const hasText = Boolean(message.text);
     const hasAttachments = Boolean(message.files?.length);
@@ -83,10 +91,11 @@ const ChatBot = () => {
     );
     setInput("");
   };
+
   return (
-    <div className="max-w-4xl mx-auto relative size-full h-full">
+    <div className="max-w-4xl mx-auto w-full relative size-full h-full">
       <div className="flex flex-col h-full">
-        <Conversation className="h-full">
+        <Conversation className="h-full py-14">
           <ConversationContent className="overflow-hidden">
             {messages.map((message) => (
               <div key={message.id}>
@@ -143,6 +152,39 @@ const ChatBot = () => {
                             )}
                         </Message>
                       );
+                    case "file": {
+                      const isImage = part.url.startsWith("data:image");
+                      return (
+                        <Message
+                          key={`${message.id}-${i}`}
+                          className="my-2"
+                          from={message.role}
+                        >
+                          <MessageContent className="p-2!">
+                            {isImage ? (
+                              <img
+                                src={part.url}
+                                width={512}
+                                height={512}
+                                alt="Uploaded image"
+                                className="max-w-sm rounded-sm border-2 border-accent w-full"
+                              />
+                            ) : (
+                              <div className="flex items-center gap-2 border p-2">
+                                <Link
+                                  to={part.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-primary underline text-sm"
+                                >
+                                  Open PDF
+                                </Link>
+                              </div>
+                            )}
+                          </MessageContent>
+                        </Message>
+                      );
+                    }
                     case "reasoning":
                       return (
                         <Reasoning

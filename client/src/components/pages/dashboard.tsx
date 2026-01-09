@@ -14,13 +14,42 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { Outlet } from "react-router-dom";
+import {} from "@/components/ui/button";
+import { authClient } from "@/lib/auth-client";
+import { useNavigate } from "react-router-dom";
+import { useEffect } from "react";
+import { toastManager } from "../ui/toast";
+import { Loader } from "../ai-elements/loader";
 
 export default function DashboardLayout() {
+  const navigate = useNavigate();
+  const session = authClient.useSession();
+
+  useEffect(() => {
+    if (session.isPending) return;
+    if (!session.data) {
+      toastManager.add({
+        type: "error",
+        title: "Unauthenticated - Please Login",
+        description: "Redirecting to Homepage...",
+      });
+      navigate("/");
+    }
+  }, [session, navigate]);
+
+  if (session.isPending || !session.data) {
+    return (
+      <div className="h-screen flex items-center justify-center">
+        <Loader />
+      </div>
+    );
+  }
+
   return (
     <SidebarProvider>
       <AppSidebar variant="floating" />
       <SidebarInset className="h-screen flex flex-col">
-        <header className="flex h-16 sticky top-0 bg-background shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
+        <header className="flex h-14 fixed top-0 backdrop-blur-2xl bg-background/50 border-b z-10 w-full shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 mx-2">
           <div className="flex items-center gap-2 px-4">
             <SidebarTrigger className="-ml-1" />
             <Separator

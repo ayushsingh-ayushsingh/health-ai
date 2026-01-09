@@ -1,4 +1,4 @@
-import type { AppType } from "../../../server/src/index";
+import type { AppType } from "../../../server/src";
 import { hc } from "hono/client";
 
 export const client = hc<AppType>("http://localhost:3000/");
