@@ -18,20 +18,20 @@ import {} from "@/components/ui/button";
 import { authClient } from "@/lib/auth-client";
 import { useNavigate } from "react-router-dom";
 import { useEffect } from "react";
-import { toastManager } from "../ui/toast";
 import { Loader } from "../ai-elements/loader";
+import { toastManager } from "../ui/toast";
 
 export default function DashboardLayout() {
   const navigate = useNavigate();
   const session = authClient.useSession();
 
   useEffect(() => {
-    if (session.isPending) return;
-    if (!session.data) {
+    if (!session.data && !session.isPending && !session.isRefetching) {
       toastManager.add({
-        type: "error",
-        title: "Unauthenticated - Please Login",
-        description: "Redirecting to Homepage...",
+        type: "info",
+        title: "Login to access dashboard",
+        description: "Redirecting to home...",
+        timeout: 2500,
       });
       navigate("/");
     }

@@ -3,10 +3,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Link } from "react-router-dom";
-import { authClient } from "@/lib/auth-client";
+import { authClient, REDIRECT_URL } from "@/lib/auth-client";
 import { useState, useEffect, type FormEvent } from "react";
 import { toastManager } from "../ui/toast";
 import { useNavigate } from "react-router-dom";
+import { Loader } from "../ai-elements/loader";
+import { GithubIcon } from "lucide-react";
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -27,7 +29,11 @@ export default function LoginPage() {
   }, [session, navigate]);
 
   if (session.isPending) {
-    return null;
+    return (
+      <div className="h-screen flex items-center justify-center">
+        <Loader />
+      </div>
+    );
   }
 
   const handleSubmit = async (e: FormEvent) => {
@@ -70,13 +76,22 @@ export default function LoginPage() {
               <LogoIcon />
             </Link>
             <h1 className="mb-1 mt-4 text-xl font-semibold">
-              Sign In to Tailark
+              Login to Health AI
             </h1>
-            <p className="text-sm">Welcome back! Sign in to continue</p>
+            <p className="text-sm">Welcome back! Login to continue</p>
           </div>
 
           <div className="mt-6 grid grid-cols-2 gap-3">
-            <Button type="button" variant="outline">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={async () => {
+                await authClient.signIn.social({
+                  provider: "google",
+                  callbackURL: REDIRECT_URL,
+                });
+              }}
+            >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 width="0.98em"
@@ -102,25 +117,20 @@ export default function LoginPage() {
               </svg>
               <span>Google</span>
             </Button>
-            <Button type="button" variant="outline">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="1em"
-                height="1em"
-                viewBox="0 0 256 256"
-              >
-                <path fill="#f1511b" d="M121.666 121.666H0V0h121.666z"></path>
-                <path fill="#80cc28" d="M256 121.666H134.335V0H256z"></path>
-                <path
-                  fill="#00adef"
-                  d="M121.663 256.002H0V134.336h121.663z"
-                ></path>
-                <path
-                  fill="#fbbc09"
-                  d="M256 256.002H134.335V134.336H256z"
-                ></path>
-              </svg>
-              <span>Microsoft</span>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={async () => {
+                await authClient.signIn.social({
+                  provider: "github",
+                  callbackURL: REDIRECT_URL,
+                });
+              }}
+            >
+              <span className="bg-white rounded-full size-4 items-center justify-center flex">
+                <GithubIcon className="text-black mt-1 fill-black size-3.5 opacity-100" />
+              </span>
+              <span>Github</span>
             </Button>
           </div>
 

@@ -1,10 +1,25 @@
 import { Context } from "hono";
+import { auth } from "./auth";
 
 export function asyncHandler<
   C extends Context,
   R extends Response | Promise<Response>,
 >(fn: (c: C) => R) {
   return async (c: C) => {
+    const session = await auth.api.getSession({
+      headers: c.req.raw.headers,
+    });
+
+    if (!session) {
+      return c.json(
+        {
+          message: "You are unauthenticated.",
+          description: "Login to use the service",
+        },
+        401,
+      );
+    }
+
     try {
       return await fn(c);
     } catch (error) {
@@ -25,16 +40,19 @@ export function protectedAsyncHandler<
   R extends Response | Promise<Response>,
 >(fn: (c: C) => R) {
   return async (c: C) => {
-    const user = c.get("user");
+    const session = await auth.api.getSession({
+      headers: c.req.raw.headers,
+    });
 
-    if (!user)
+    if (!session) {
       return c.json(
         {
-          message: "Signin to continue",
-          error: "You are unauthenticated",
+          message: "You are unauthenticated.",
+          description: "Login to use the service",
         },
         401,
       );
+    }
 
     try {
       return await fn(c);

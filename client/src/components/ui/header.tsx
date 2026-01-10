@@ -1,10 +1,12 @@
 import { Link } from "react-router-dom";
 import { Logo } from "@/components/ui/logo";
-import { Menu, User2, X } from "lucide-react";
+import { MenuIcon, User2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import React from "react";
-import { authClient } from "@/lib/auth-client";
+import { authClient, logOut } from "@/lib/auth-client";
+import { Menu, MenuItem, MenuPopup, MenuTrigger } from "@/components/ui/menu";
 import { cn } from "@/lib/utils";
+import { toastManager } from "./toast";
 
 const menuItems = [
   { name: "Features", href: "#link" },
@@ -54,7 +56,7 @@ export const HeroHeader = () => {
                 aria-label={menuState == true ? "Close Menu" : "Open Menu"}
                 className="relative z-20 -m-2.5 -mr-4 block cursor-pointer p-2.5 lg:hidden"
               >
-                <Menu className="in-data-[state=active]:rotate-180 in-data-[state=active]:scale-0 in-data-[state=active]:opacity-0 m-auto size-6 duration-200" />
+                <MenuIcon className="in-data-[state=active]:rotate-180 in-data-[state=active]:scale-0 in-data-[state=active]:opacity-0 m-auto size-6 duration-200" />
                 <X className="in-data-[state=active]:rotate-0 in-data-[state=active]:scale-100 in-data-[state=active]:opacity-100 absolute inset-0 m-auto size-6 -rotate-180 scale-0 opacity-0 duration-200" />
               </button>
             </div>
@@ -122,14 +124,36 @@ export const HeroHeader = () => {
                     ></Button>
                   </>
                 ) : session.data.user.image ? (
-                  // <CircleUserIcon />
-                  <img
-                    src={session.data.user.image}
-                    alt={session.data.user.name + "Avatar"}
-                    title={session.data.user.name}
-                    height={512}
-                    width={512}
-                  />
+                  <Menu>
+                    <MenuTrigger
+                      render={
+                        <img
+                          src={session.data.user.image}
+                          alt={session.data.user.name + "Avatar"}
+                          title={session.data.user.name}
+                          className="size-8 rounded-full"
+                          height={512}
+                          width={512}
+                        />
+                      }
+                    />
+                    <MenuPopup side="bottom">
+                      <MenuItem
+                        closeOnClick
+                        render={<Link to="/dashboard/settings"></Link>}
+                      >
+                        Settings
+                      </MenuItem>
+                      <MenuItem
+                        closeOnClick
+                        onClick={async () => {
+                          await logOut();
+                        }}
+                      >
+                        Log out
+                      </MenuItem>
+                    </MenuPopup>
+                  </Menu>
                 ) : (
                   <Button
                     size={"icon"}
