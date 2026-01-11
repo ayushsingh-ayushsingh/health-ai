@@ -68,6 +68,10 @@ const ChatBot = () => {
   const { messages, sendMessage, status, regenerate } = useChat({
     transport: new DefaultChatTransport({
       api: "http://localhost:3000/api/chat",
+      credentials: "include",
+      body: {
+        conversationId: "6963f4eaaa5ed2af65fbff4f",
+      },
     }),
   });
 

@@ -5,6 +5,8 @@ import { groq } from "@ai-sdk/groq";
 import crypto from "crypto";
 import { Conversation } from "../db/conversations/model";
 import { Message } from "../db/messages/model";
+import { auth } from "../lib/auth";
+import { fromNodeHeaders } from "better-auth/node";
 
 export default async function AiHandler(req: Request, res: Response) {
   try {

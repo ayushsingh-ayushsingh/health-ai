@@ -2,6 +2,7 @@ import { Route, Routes } from "react-router-dom";
 
 import DashboardLayout from "@/components/pages/dashboard";
 import Settings from "@/components/pages/settings";
+import CheckRoutes from "@/components/pages/checkRoutes";
 import Login from "@/components/pages/login";
 import Signup from "@/components/pages/signup";
 import Home from "./components/pages/home";
@@ -17,6 +18,7 @@ export default function App() {
       <Route path="dashboard" element={<DashboardLayout />}>
         <Route index element={<ChatBot />} />
         <Route path="settings" element={<Settings />} />
+        <Route path="check" element={<CheckRoutes />} />
       </Route>
     </Routes>
   );

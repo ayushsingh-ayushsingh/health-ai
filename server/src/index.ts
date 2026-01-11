@@ -35,7 +35,7 @@ app.use(
 );
 
 // Auth routes must be before express.json()
-app.all("/api/auth/*path", toNodeHandler(auth));
+app.all("/api/auth/*splat", toNodeHandler(auth));
 
 app.use(express.json());
 
@@ -44,7 +44,7 @@ app.get("/", (_req, res) => {
   return res.send("Hello Express!");
 });
 
-app.get("/api/me", async (req, res) => {
+app.post("/api/me", async (req, res) => {
   const session = await auth.api.getSession({
     headers: req.headers,
   });
