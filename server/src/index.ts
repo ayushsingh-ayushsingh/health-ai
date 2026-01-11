@@ -1,58 +1,97 @@
-import { Hono } from "hono";
-import { logger } from "hono/logger";
-import { cors } from "hono/cors";
-import { serve } from "@hono/node-server";
-import { auth } from "../lib/auth";
+import express from "express";
+import cors from "cors";
+import { config } from "dotenv";
+import { toNodeHandler } from "better-auth/node";
+import { auth } from "./lib/auth";
 import AiHandler from "./ai/aiHandler";
+import "./lib/db";
+import {
+  createConversation,
+  listConversations,
+  getConversation,
+  updateConversation,
+  deleteConversation,
+} from "./db/conversations/controller";
+import {
+  listMessages,
+  createUserMessage,
+  createAssistantMessage,
+  appendAssistantPart,
+  finalizeAssistantMessage,
+} from "./db/messages/controller";
+import { protectedAsyncHandler } from "./lib/handlers";
 
-const app = new Hono();
-app.use(logger());
+config();
+
+const app = express();
+const port = process.env.PORT || 3000;
 
 app.use(
-  "*",
   cors({
     origin: ["http://localhost:3000", "http://localhost:5173"],
-    allowHeaders: ["Content-Type", "Authorization"],
-    allowMethods: ["POST", "GET", "OPTIONS"],
-    exposeHeaders: ["Content-Length"],
-    maxAge: 600,
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
     credentials: true,
   }),
 );
 
-const route = app
-  .on(["POST", "GET"], "/api/auth/*", (c) => auth.handler(c.req.raw))
-  .get("/", (c) => {
-    return c.text("Hello Hono!");
-  })
-  .basePath("/api")
-  .post("/protected", async (c) => {
-    const session = await auth.api.getSession({
-      headers: c.req.raw.headers,
-    });
+// Auth routes must be before express.json()
+app.all("/api/auth/*path", toNodeHandler(auth));
 
-    console.log(session);
+app.use(express.json());
 
-    if (!session) {
-      return c.json(
-        {
-          message: "You are unauthenticated.",
-          description: "Login to use the service",
-        },
-        401,
-      );
-    }
+// Basic route
+app.get("/", (_req, res) => {
+  return res.send("Hello Express!");
+});
 
-    return c.json({
-      message: "This route should be protected",
-    });
-  })
-  .post("/chat", AiHandler);
+app.get("/api/me", async (req, res) => {
+  const session = await auth.api.getSession({
+    headers: req.headers,
+  });
+  console.log("Session", session);
+  return res.json(session);
+});
 
-export default app;
-export type AppType = typeof route;
+// AI Chat route
+app.post("/api/chat", protectedAsyncHandler(AiHandler));
 
-serve({
-  fetch: app.fetch,
-  port: 3000,
+// Conversation routes
+app.post("/api/conversations", protectedAsyncHandler(createConversation));
+app.get("/api/conversations", protectedAsyncHandler(listConversations));
+app.get(
+  "/api/conversations/:conversationId",
+  protectedAsyncHandler(getConversation),
+);
+app.patch(
+  "/api/conversations/:conversationId",
+  protectedAsyncHandler(updateConversation),
+);
+app.delete(
+  "/api/conversations/:conversationId",
+  protectedAsyncHandler(deleteConversation),
+);
+
+app.get(
+  "/api/conversations/:conversationId/messages",
+  protectedAsyncHandler(listMessages),
+);
+app.post(
+  "/api/conversations/:conversationId/messages/user",
+  protectedAsyncHandler(createUserMessage),
+);
+app.post(
+  "/api/conversations/:conversationId/messages/assistant",
+  protectedAsyncHandler(createAssistantMessage),
+);
+app.patch(
+  "/api/messages/:messageId/append",
+  protectedAsyncHandler(appendAssistantPart),
+);
+app.patch(
+  "/api/messages/:messageId/finalize",
+  protectedAsyncHandler(finalizeAssistantMessage),
+);
+
+app.listen(port, () => {
+  console.log(`Server listening on port ${port}`);
 });

@@ -6,7 +6,6 @@ import React from "react";
 import { authClient, logOut } from "@/lib/auth-client";
 import { Menu, MenuItem, MenuPopup, MenuTrigger } from "@/components/ui/menu";
 import { cn } from "@/lib/utils";
-import { toastManager } from "./toast";
 
 const menuItems = [
   { name: "Features", href: "#link" },
