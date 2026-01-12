@@ -3,7 +3,6 @@ import { streamText, convertToModelMessages, type UIMessage } from "ai";
 import { openrouter } from "@openrouter/ai-sdk-provider";
 import { groq } from "@ai-sdk/groq";
 import crypto from "crypto";
-
 import { Conversation } from "../db/conversations/model";
 import { Message } from "../db/messages/model";
 
@@ -22,6 +21,11 @@ export default async function AiHandler(req: Request, res: Response) {
         .json({ error: "Missing messages or conversationId" });
     }
 
+    const conversation = await Conversation.findById(conversationId);
+    if (!conversation) {
+      return res.status(404).json({ error: "Conversation not found" });
+    }
+
     const lastUserMessage = messages[messages.length - 1];
     if (lastUserMessage.role === "user") {
       await Message.findOneAndUpdate(
@@ -30,11 +34,7 @@ export default async function AiHandler(req: Request, res: Response) {
           conversationId,
           uiMessageId: lastUserMessage.id || crypto.randomUUID(),
           role: "user",
-          content: JSON.stringify({
-            parts: lastUserMessage.parts,
-            id: lastUserMessage.id,
-            role: lastUserMessage.role,
-          }),
+          content: JSON.stringify(lastUserMessage),
           status: "completed",
         },
         { upsert: true, new: true },
@@ -50,27 +50,34 @@ export default async function AiHandler(req: Request, res: Response) {
       messages: await convertToModelMessages(messages),
       system: `You are an AI assistant. When a tool returns a result, you must explain the result to the user.`,
       maxRetries: 3,
-      onFinish: async ({ response, usage }) => {
-        try {
-          const lastMessage = response.messages.at(-1);
-          console.log("Final assistant message:");
-          console.log(JSON.stringify(lastMessage, null, 2));
+    });
 
+    result.pipeUIMessageStreamToResponse(res, {
+      sendReasoning: true, // Send reasoning parts if available
+      sendSources: true, // Send source parts if available
+      onFinish: async ({ messages }) => {
+        try {
+          console.log("Final assistant UIMessage:");
+          const aiResponse = messages[messages.length - 1];
+
+          console.log(JSON.stringify(aiResponse, null, 2));
+
+          // Save the response message to database
           await Message.create({
             conversationId,
             uiMessageId: crypto.randomUUID(),
             role: "assistant",
-            content: JSON.stringify(lastMessage),
+            content: JSON.stringify(aiResponse),
             status: "completed",
-            tokenCount: usage.totalTokens,
+            tokenCount: 0,
           });
 
+          // Update conversation
           await Conversation.updateOne(
             { _id: conversationId },
             {
               $inc: {
                 messageCount: 2,
-                tokenCount: usage.totalTokens,
               },
               $set: { lastMessageAt: new Date() },
             },
@@ -80,8 +87,6 @@ export default async function AiHandler(req: Request, res: Response) {
         }
       },
     });
-
-    result.pipeUIMessageStreamToResponse(res);
   } catch (error) {
     console.error("AI Handler Error:", error);
     if (!res.headersSent) {

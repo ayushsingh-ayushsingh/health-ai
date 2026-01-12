@@ -1,4 +1,4 @@
-import { Bot, ChevronRight, Plus } from "lucide-react";
+import { Bot, ChevronRight, EllipsisVertical, Plus } from "lucide-react";
 
 import {
   Collapsible,
@@ -11,13 +11,14 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarMenuSub,
   SidebarMenuSubButton,
   SidebarMenuSubItem,
 } from "@/components/ui/sidebar";
-import { useQuery } from "@tanstack/react-query";
-import { Link } from "react-router-dom";
-import { BASE_URL, CLIENT_URL } from "@/lib/auth-client";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Link, useNavigate } from "react-router-dom";
+import { Button } from "../ui/button";
+import { Menu, MenuItem, MenuPopup, MenuTrigger } from "@/components/ui/menu";
+import { getConversations, handleDelete } from "@/lib/queryFunctions";
 
 export interface Conversation {
   title: string;
@@ -31,15 +32,6 @@ export interface Conversation {
   updatedAt: string;
   __v: 0;
 }
-
-const getConversations = async () => {
-  const res = await fetch(BASE_URL + "/api/conversations", {
-    credentials: "include",
-  });
-  const conversations = await res.json();
-
-  return conversations;
-};
 
 export function ChatHistory() {
   const { data } = useQuery({
@@ -67,22 +59,70 @@ export function ChatHistory() {
               </SidebarMenuButton>
             </CollapsibleTrigger>
             <CollapsibleContent>
-              <SidebarMenuSub>
-                {data &&
-                  data.map((convo: Conversation, pos: number) => (
-                    <SidebarMenuSubItem key={convo.title + pos}>
-                      <SidebarMenuSubButton asChild>
-                        <Link to={CLIENT_URL + "/dashboard/chat/" + convo._id}>
-                          <span>{convo.title}</span>
+              {data &&
+                data.map((convo: Conversation, pos: number) => (
+                  <div className="w-full">
+                    <SidebarMenuSubItem
+                      key={convo.title + pos}
+                      className="flex items-center"
+                    >
+                      <SidebarMenuSubButton
+                        asChild
+                        className="flex-1 p-0 mr-0.5"
+                      >
+                        <Link
+                          to={"/dashboard/chat/" + convo._id}
+                          className="flex justify-between p-0"
+                        >
+                          <span className="pl-3 truncate text-ellipsis">
+                            {convo.title[0].toUpperCase()}
+                            {convo.title.slice(1)}
+                          </span>
+                          <ConversationMenu conversationId={convo._id} />
                         </Link>
                       </SidebarMenuSubButton>
                     </SidebarMenuSubItem>
-                  ))}
-              </SidebarMenuSub>
+                  </div>
+                ))}
             </CollapsibleContent>
           </SidebarMenuItem>
         </Collapsible>
       </SidebarMenu>
     </SidebarGroup>
+  );
+}
+
+export function ConversationMenu({
+  conversationId,
+}: {
+  conversationId: string;
+}) {
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
+
+  const deleteMutation = useMutation({
+    mutationFn: handleDelete,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["conversations"] });
+      navigate("/dashboard");
+    },
+  });
+
+  return (
+    <Menu>
+      <MenuTrigger
+        render={
+          <Button size={"xs"} variant={"ghost"} onClick={() => {}}>
+            <EllipsisVertical />
+          </Button>
+        }
+      />
+      <MenuPopup align="start" sideOffset={4}>
+        <MenuItem>Rename</MenuItem>
+        <MenuItem onClick={() => deleteMutation.mutate(conversationId)}>
+          Delete
+        </MenuItem>
+      </MenuPopup>
+    </Menu>
   );
 }

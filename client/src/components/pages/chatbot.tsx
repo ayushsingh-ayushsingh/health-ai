@@ -1,3 +1,5 @@
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { fetchMessages, createConversation } from "@/lib/queryFunctions";
 import {
   Conversation,
   ConversationContent,
@@ -47,10 +49,10 @@ import {
   ReasoningTrigger,
 } from "@/components/ai-elements/reasoning";
 import { Loader } from "@/components/ai-elements/loader";
-import { DefaultChatTransport, type UIMessage } from "ai";
+import { DefaultChatTransport } from "ai";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { authClient, BASE_URL } from "@/lib/auth-client";
-import type { Conversation as ConversationType } from "../blocks/chat-history";
+import { useQueryClient } from "@tanstack/react-query";
 
 const models = [
   {
@@ -65,12 +67,19 @@ const models = [
 
 const ChatBot = () => {
   const session = authClient.useSession();
-  const navigate = useNavigate();
   const { convId } = useParams();
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const [input, setInput] = useState("");
   const [model, setModel] = useState<string>(models[0].value);
   const [webSearch, setWebSearch] = useState(false);
+
+  const { data: fetchedMessages } = useQuery({
+    queryKey: ["messages", convId],
+    queryFn: () => fetchMessages(convId!),
+    enabled: !!convId,
+  });
 
   const { messages, sendMessage, status, regenerate, setMessages } = useChat({
     transport: new DefaultChatTransport({
@@ -79,45 +88,32 @@ const ChatBot = () => {
     }),
   });
 
+  const createConversationMutation = useMutation({
+    mutationFn: createConversation,
+    onSuccess: (newConv) => {
+      queryClient.invalidateQueries({ queryKey: ["conversations"] });
+      navigate(`/dashboard/chat/${newConv._id}`);
+    },
+  });
+
   useEffect(() => {
     if (!convId) {
       setMessages([]);
-    } else {
-      const fetchMessages = async () => {
-        const res = await fetch(
-          BASE_URL + `/api/conversations/${convId}/messages`,
-          {
-            credentials: "include",
-          },
-        );
-        const fetchedMessages = await res.json();
-        console.log(fetchedMessages);
-      };
-      fetchMessages();
+    } else if (fetchedMessages) {
+      setMessages(fetchedMessages);
     }
-  }, [convId, setMessages]);
+  }, [convId, fetchedMessages, setMessages]);
 
   const handleSubmit = async (message: PromptInputMessage) => {
-    const hasText = Boolean(message.text);
-    const hasAttachments = Boolean(message.files?.length);
-    if (!(hasText || hasAttachments)) {
-      return;
-    }
+    if (!message.text && !message.files?.length) return;
 
-    if (messages.length === 0) {
-      const res = await fetch(BASE_URL + "/api/conversations", {
-        method: "POST",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          title: message.text,
-        }),
-      });
+    let conversationId = convId;
 
-      const newConv: ConversationType = await res.json();
-      navigate(`/dashboard/chat/${newConv._id}`);
+    if (!conversationId && messages.length === 0) {
+      const newConv = await createConversationMutation.mutateAsync(
+        message.text || "New chat",
+      );
+      conversationId = newConv._id;
     }
 
     sendMessage(
@@ -127,12 +123,13 @@ const ChatBot = () => {
       },
       {
         body: {
-          model: model,
-          webSearch: webSearch,
-          conversationId: convId,
+          model,
+          webSearch,
+          conversationId,
         },
       },
     );
+
     setInput("");
   };
 
@@ -207,115 +204,119 @@ const ChatBot = () => {
       <div className="flex flex-col h-full">
         <Conversation className="h-full py-14">
           <ConversationContent className="overflow-hidden">
-            {messages.map((message) => (
-              <div key={message.id}>
-                {message.role === "assistant" &&
-                  message.parts.filter((part) => part.type === "source-url")
-                    .length > 0 && (
-                    <Sources>
-                      <SourcesTrigger
-                        count={
-                          message.parts.filter(
-                            (part) => part.type === "source-url",
-                          ).length
-                        }
-                      />
-                      {message.parts
-                        .filter((part) => part.type === "source-url")
-                        .map((part, i) => (
-                          <SourcesContent key={`${message.id}-${i}`}>
-                            <Source
-                              key={`${message.id}-${i}`}
-                              href={part.url}
-                              title={part.url}
-                            />
-                          </SourcesContent>
-                        ))}
-                    </Sources>
-                  )}
-                {message.parts.map((part, i) => {
-                  switch (part.type) {
-                    case "text":
-                      return (
-                        <Message key={`${message.id}-${i}`} from={message.role}>
-                          <MessageContent>
-                            <MessageResponse>{part.text}</MessageResponse>
-                          </MessageContent>
-                          {message.role === "assistant" &&
-                            i === messages.length - 1 && (
-                              <MessageActions>
-                                <MessageAction
-                                  onClick={() => regenerate()}
-                                  label="Retry"
-                                >
-                                  <RefreshCcwIcon className="size-3" />
-                                </MessageAction>
-                                <MessageAction
-                                  onClick={() =>
-                                    navigator.clipboard.writeText(part.text)
-                                  }
-                                  label="Copy"
-                                >
-                                  <CopyIcon className="size-3" />
-                                </MessageAction>
-                              </MessageActions>
-                            )}
-                        </Message>
-                      );
-                    case "file": {
-                      const isImage = part.url.startsWith("data:image");
-                      return (
-                        <Message
-                          key={`${message.id}-${i}`}
-                          className="my-2"
-                          from={message.role}
-                        >
-                          <MessageContent className="p-2!">
-                            {isImage ? (
-                              <img
-                                src={part.url}
-                                width={512}
-                                height={512}
-                                alt="Uploaded image"
-                                className="max-w-sm rounded-sm border-2 border-accent w-full"
-                              />
-                            ) : (
-                              <div className="flex items-center gap-2 border p-2">
-                                <Link
-                                  to={part.url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-primary underline text-sm"
-                                >
-                                  Open PDF
-                                </Link>
-                              </div>
-                            )}
-                          </MessageContent>
-                        </Message>
-                      );
-                    }
-                    case "reasoning":
-                      return (
-                        <Reasoning
-                          key={`${message.id}-${i}`}
-                          className="w-full"
-                          isStreaming={
-                            status === "streaming" &&
-                            i === message.parts.length - 1 &&
-                            message.id === messages.at(-1)?.id
+            {messages &&
+              messages.map((message) => (
+                <div key={message.id}>
+                  {message.role === "assistant" &&
+                    message.parts.filter((part) => part.type === "source-url")
+                      .length > 0 && (
+                      <Sources>
+                        <SourcesTrigger
+                          count={
+                            message.parts.filter(
+                              (part) => part.type === "source-url",
+                            ).length
                           }
-                        >
-                          <ReasoningTrigger />
-                          <ReasoningContent>{part.text}</ReasoningContent>
-                        </Reasoning>
-                      );
-                    default:
-                      return null;
-                  }
-                })}
-              </div>
-            ))}
+                        />
+                        {message.parts
+                          .filter((part) => part.type === "source-url")
+                          .map((part, i) => (
+                            <SourcesContent key={`${message.id}-${i}`}>
+                              <Source
+                                key={`${message.id}-${i}`}
+                                href={part.url}
+                                title={part.url}
+                              />
+                            </SourcesContent>
+                          ))}
+                      </Sources>
+                    )}
+                  {message.parts.map((part, i) => {
+                    switch (part.type) {
+                      case "text":
+                        return (
+                          <Message
+                            key={`${message.id}-${i}`}
+                            from={message.role}
+                          >
+                            <MessageContent>
+                              <MessageResponse>{part.text}</MessageResponse>
+                            </MessageContent>
+                            {message.role === "assistant" &&
+                              i === messages.length - 1 && (
+                                <MessageActions>
+                                  <MessageAction
+                                    onClick={() => regenerate()}
+                                    label="Retry"
+                                  >
+                                    <RefreshCcwIcon className="size-3" />
+                                  </MessageAction>
+                                  <MessageAction
+                                    onClick={() =>
+                                      navigator.clipboard.writeText(part.text)
+                                    }
+                                    label="Copy"
+                                  >
+                                    <CopyIcon className="size-3" />
+                                  </MessageAction>
+                                </MessageActions>
+                              )}
+                          </Message>
+                        );
+                      case "file": {
+                        const isImage = part.url.startsWith("data:image");
+                        return (
+                          <Message
+                            key={`${message.id}-${i}`}
+                            className="my-2"
+                            from={message.role}
+                          >
+                            <MessageContent className="p-2!">
+                              {isImage ? (
+                                <img
+                                  src={part.url}
+                                  width={512}
+                                  height={512}
+                                  alt="Uploaded image"
+                                  className="max-w-sm rounded-sm border-2 border-accent w-full"
+                                />
+                              ) : (
+                                <div className="flex items-center gap-2 border p-2">
+                                  <Link
+                                    to={part.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-primary underline text-sm"
+                                  >
+                                    Open PDF
+                                  </Link>
+                                </div>
+                              )}
+                            </MessageContent>
+                          </Message>
+                        );
+                      }
+                      case "reasoning":
+                        return (
+                          <Reasoning
+                            key={`${message.id}-${i}`}
+                            className="w-full"
+                            isStreaming={
+                              status === "streaming" &&
+                              i === message.parts.length - 1 &&
+                              message.id === messages.at(-1)?.id
+                            }
+                          >
+                            <ReasoningTrigger />
+                            <ReasoningContent>{part.text}</ReasoningContent>
+                          </Reasoning>
+                        );
+                      default:
+                        return null;
+                    }
+                  })}
+                </div>
+              ))}
             {status === "submitted" && <Loader />}
           </ConversationContent>
           <ConversationScrollButton />

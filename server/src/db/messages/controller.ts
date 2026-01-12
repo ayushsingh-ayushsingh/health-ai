@@ -16,15 +16,12 @@ export async function listMessages(req: Request, res: Response) {
     .sort({ createdAt: 1 })
     .lean();
 
+  console.log(messages);
+
   const data = messages.map((m) => ({
-    id: m.uiMessageId,
-    role: m.role,
-    status: m.status,
     ...JSON.parse(m.content),
   }));
 
-  console.log(data);
-  // PARSE the stringified JSON back into objects for the frontend
   res.json(data);
 }
 

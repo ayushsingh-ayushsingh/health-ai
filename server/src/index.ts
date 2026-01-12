@@ -53,11 +53,11 @@ app.post("/api/me", async (req, res) => {
 });
 
 // AI Chat route
-app.post("/api/chat", protectedAsyncHandler(AiHandler));
+app.post("/api/chat", protectedAsyncHandler(AiHandler)); //
 
 // Conversation routes
-app.post("/api/conversations", protectedAsyncHandler(createConversation));
-app.get("/api/conversations", protectedAsyncHandler(listConversations));
+app.post("/api/conversations", protectedAsyncHandler(createConversation)); //
+app.get("/api/conversations", protectedAsyncHandler(listConversations)); // 
 app.get(
   "/api/conversations/:conversationId",
   protectedAsyncHandler(getConversation),
@@ -74,7 +74,7 @@ app.delete(
 app.get(
   "/api/conversations/:conversationId/messages",
   protectedAsyncHandler(listMessages),
-);
+); //
 app.post(
   "/api/conversations/:conversationId/messages/user",
   protectedAsyncHandler(createUserMessage),
