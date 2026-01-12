@@ -1,7 +1,8 @@
 import { Button } from "@/components/ui/button";
-import { authClient, logOut } from "@/lib/auth-client";
+import { logOut } from "@/lib/auth-client";
 import { Link, useNavigate } from "react-router-dom";
-import { toastManager } from "../ui/toast";
+// import { authClient, logOut } from "@/lib/auth-client";
+// import { toastManager } from "../ui/toast";
 
 const Settings = () => {
   const navigate = useNavigate();

@@ -3,19 +3,19 @@
 import * as React from "react";
 import {
   AudioWaveform,
-  Bot,
+  // Bot,
   Command,
   Frame,
   GalleryVerticalEnd,
-  Map,
+  // Map,
   PieChart,
   SquareTerminal,
   // BookOpen,
   // Settings2,
 } from "lucide-react";
 
-import { NavMain } from "@/components/blocks/nav-main";
-import { NavProjects } from "@/components/blocks/nav-projects";
+// import { NavMain } from "@/components/blocks/nav-main";
+// import { NavProjects } from "@/components/blocks/nav-projects";
 import { NavUser } from "@/components/blocks/nav-user";
 import { TeamSwitcher } from "@/components/blocks/team-switcher";
 import {
