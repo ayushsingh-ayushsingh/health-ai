@@ -7,9 +7,11 @@ export async function createConversation(req: Request, res: Response) {
   const userId = await getUserId(req, res);
   if (!userId) return res.status(401).json({ error: "Unauthorized" });
 
+  const { title } = req.body;
+
   const convo = await Conversation.create({
     userId: userId as string,
-    title: "New Conversation",
+    title: title || "New Conversation",
   });
   res.status(201).json(convo);
 }

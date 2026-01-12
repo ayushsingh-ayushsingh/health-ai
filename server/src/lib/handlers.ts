@@ -26,7 +26,6 @@ export function protectedAsyncHandler(
       const session = await auth.api.getSession({
         headers: fromNodeHeaders(req.headers),
       });
-      console.log("Session", session);
 
       if (!session) {
         return res.status(401).json({

@@ -17,6 +17,7 @@ export default function App() {
       <Route path="settings" element={<Settings />} />
       <Route path="dashboard" element={<DashboardLayout />}>
         <Route index element={<ChatBot />} />
+        <Route path="chat/:convId" element={<ChatBot />} />
         <Route path="settings" element={<Settings />} />
         <Route path="check" element={<CheckRoutes />} />
       </Route>

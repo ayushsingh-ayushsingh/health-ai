@@ -4,7 +4,7 @@ export interface MessageDoc extends Document {
   conversationId: mongoose.Types.ObjectId;
   uiMessageId: string;
   role: "system" | "user" | "assistant";
-  content: string; // <--- ALL data (parts, metadata, etc.) stored as stringified JSON
+  content: string;
   status: "streaming" | "completed" | "error";
   llmModel?: string;
   tokenCount?: number;
@@ -25,7 +25,7 @@ const MessageSchema = new Schema<MessageDoc>(
       enum: ["system", "user", "assistant"],
       required: true,
     },
-    content: { type: String, required: true }, // The "JSON String"
+    content: { type: String, required: true },
     status: {
       type: String,
       enum: ["streaming", "completed", "error"],
@@ -37,7 +37,6 @@ const MessageSchema = new Schema<MessageDoc>(
   { timestamps: { createdAt: true, updatedAt: true } },
 );
 
-// Simplified Indexing
 MessageSchema.index({ conversationId: 1, createdAt: 1 });
 
 export const Message = mongoose.model<MessageDoc>("Message", MessageSchema);

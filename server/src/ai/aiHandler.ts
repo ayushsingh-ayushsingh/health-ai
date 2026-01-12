@@ -3,10 +3,9 @@ import { streamText, convertToModelMessages, type UIMessage } from "ai";
 import { openrouter } from "@openrouter/ai-sdk-provider";
 import { groq } from "@ai-sdk/groq";
 import crypto from "crypto";
+
 import { Conversation } from "../db/conversations/model";
 import { Message } from "../db/messages/model";
-import { auth } from "../lib/auth";
-import { fromNodeHeaders } from "better-auth/node";
 
 export default async function AiHandler(req: Request, res: Response) {
   try {
@@ -23,7 +22,6 @@ export default async function AiHandler(req: Request, res: Response) {
         .json({ error: "Missing messages or conversationId" });
     }
 
-    // 1. Save the User's Message first (the last message in the array)
     const lastUserMessage = messages[messages.length - 1];
     if (lastUserMessage.role === "user") {
       await Message.findOneAndUpdate(
@@ -43,7 +41,6 @@ export default async function AiHandler(req: Request, res: Response) {
       );
     }
 
-    // 2. Define the Model
     const result = streamText({
       model:
         openrouter.chat("nvidia/nemotron-nano-12b-v2-vl:free") ||
@@ -59,7 +56,6 @@ export default async function AiHandler(req: Request, res: Response) {
           console.log("Final assistant message:");
           console.log(JSON.stringify(lastMessage, null, 2));
 
-          // Save Assistant Message to DB
           await Message.create({
             conversationId,
             uiMessageId: crypto.randomUUID(),
@@ -69,12 +65,11 @@ export default async function AiHandler(req: Request, res: Response) {
             tokenCount: usage.totalTokens,
           });
 
-          // Update Conversation Stats
           await Conversation.updateOne(
             { _id: conversationId },
             {
               $inc: {
-                messageCount: 2, // User + Assistant
+                messageCount: 2,
                 tokenCount: usage.totalTokens,
               },
               $set: { lastMessageAt: new Date() },
@@ -86,7 +81,6 @@ export default async function AiHandler(req: Request, res: Response) {
       },
     });
 
-    // 3. Pipe stream to response
     result.pipeUIMessageStreamToResponse(res);
   } catch (error) {
     console.error("AI Handler Error:", error);

@@ -3,15 +3,15 @@
 import * as React from "react";
 import {
   AudioWaveform,
-  BookOpen,
   Bot,
   Command,
   Frame,
   GalleryVerticalEnd,
   Map,
   PieChart,
-  Settings2,
   SquareTerminal,
+  // BookOpen,
+  // Settings2,
 } from "lucide-react";
 
 import { NavMain } from "@/components/blocks/nav-main";
@@ -26,6 +26,7 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar";
 import { authClient } from "@/lib/auth-client";
+import { ChatHistory } from "./chat-history";
 
 // This is sample data.
 const data = {
@@ -63,67 +64,21 @@ const data = {
         },
       ],
     },
-    {
-      title: "Chat",
-      url: "/dashboard",
-      icon: Bot,
-      items: [
-        {
-          title: "Genesis",
-          url: "/chat",
-        },
-        {
-          title: "Explorer",
-          url: "#",
-        },
-        {
-          title: "Quantum",
-          url: "#",
-        },
-      ],
-    },
     // {
-    //   title: "Documentation",
-    //   url: "#",
-    //   icon: BookOpen,
+    //   title: "Chat",
+    //   url: "/dashboard",
+    //   icon: Bot,
     //   items: [
     //     {
-    //       title: "Introduction",
+    //       title: "Genesis",
+    //       url: "/chat",
+    //     },
+    //     {
+    //       title: "Explorer",
     //       url: "#",
     //     },
     //     {
-    //       title: "Get Started",
-    //       url: "#",
-    //     },
-    //     {
-    //       title: "Tutorials",
-    //       url: "#",
-    //     },
-    //     {
-    //       title: "Changelog",
-    //       url: "#",
-    //     },
-    //   ],
-    // },
-    // {
-    //   title: "Settings",
-    //   url: "#",
-    //   icon: Settings2,
-    //   items: [
-    //     {
-    //       title: "General",
-    //       url: "#",
-    //     },
-    //     {
-    //       title: "Team",
-    //       url: "#",
-    //     },
-    //     {
-    //       title: "Billing",
-    //       url: "#",
-    //     },
-    //     {
-    //       title: "Limits",
+    //       title: "Quantum",
     //       url: "#",
     //     },
     //   ],
@@ -139,11 +94,6 @@ const data = {
       name: "Sales & Marketing",
       url: "#",
       icon: PieChart,
-    },
-    {
-      name: "Travel",
-      url: "#",
-      icon: Map,
     },
   ],
 };
@@ -162,8 +112,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <TeamSwitcher teams={data.teams} />
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={data.navMain} />
-        <NavProjects projects={data.projects} />
+        {/*<NavMain items={data.navMain} />*/}
+        <ChatHistory />
+        {/*<NavProjects projects={data.projects} />*/}
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={user} />

@@ -26,7 +26,6 @@ const ConversationSchema = new Schema<ConversationDoc>(
   { timestamps: true },
 );
 
-// Index for fast sidebar listing
 ConversationSchema.index({ userId: 1, lastMessageAt: -1 });
 
 export const Conversation = mongoose.model<ConversationDoc>(
